@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OAuth Redirect</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin-top: 20%;
+    }
+  </style>
+</head>
+<body>
+  <h2>Redirecting back to app…</h2>
+  <p>If you are not redirected automatically, you can close this tab.</p>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const error = params.get("error");
+
+    if (code) {
+      // Use your custom Android app scheme
+      const redirectUri = "com.geosb.farmMgt://oauth?code=" + encodeURIComponent(code);
+      window.location.replace(redirectUri);
+    } else if (error) {
+      document.body.innerHTML = "<h2>❌ Authentication failed</h2><p>" + error + "</p>";
+    }
+  </script>
+</body>
+</html>
