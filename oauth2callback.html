@@ -21,11 +21,14 @@
     const error = params.get("error");
 
     if (code) {
-      // Use your custom Android app scheme
+      // Must match Python OAuthManager redirect_uri
       const redirectUri = "com.geosb.farmMgt://oauth?code=" + encodeURIComponent(code);
+
+      // Redirect back into your Android app
       window.location.replace(redirectUri);
     } else if (error) {
-      document.body.innerHTML = "<h2>❌ Authentication failed</h2><p>" + error + "</p>";
+      document.body.innerHTML =
+        "<h2>❌ Authentication failed</h2><p>" + error + "</p>";
     }
   </script>
 </body>
