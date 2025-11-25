@@ -4,32 +4,50 @@
   <meta charset="UTF-8" />
   <title>OAuth Redirect</title>
   <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      margin-top: 20%;
-    }
+    body { font-family: sans-serif; text-align: center; margin-top: 20%; }
   </style>
 </head>
 <body>
-  <h2>Redirecting back to app…</h2>
+  <h2>Redirecting back to the app…</h2>
   <p>If you are not redirected automatically, you can close this tab.</p>
 
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    const error = params.get("error");
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const localPort = params.get("local_port");
+      const error = params.get("error");
 
-    if (code) {
-      // Must match Python OAuthManager redirect_uri
-      const redirectUri = "com.geosb.farmMgt://oauth?code=" + encodeURIComponent(code);
+      if (error) {
+        document.body.innerHTML = `<h2>❌ Authentication failed</h2><p>${error}</p>`;
+        return;
+      }
 
-      // Redirect back into your Android app
-      window.location.replace(redirectUri);
-    } else if (error) {
-      document.body.innerHTML =
-        "<h2>❌ Authentication failed</h2><p>" + error + "</p>";
-    }
+      if (code && localPort) {
+        // POST code to the local loopback server created by your app
+        fetch(`http://127.0.0.1:${localPort}/oauth2callback`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: "code=" + encodeURIComponent(code)
+        })
+        .then(() => {
+          document.body.innerHTML =
+            "<h2>Authentication complete</h2><p>You may close this tab</p>";
+        })
+        .catch(err => {
+          document.body.innerHTML =
+            `<h2>⚠️ Could not reach the app</h2><p>${err}</p>`;
+        });
+
+        return;
+      }
+
+      // Fallback in case Samsung blocks POST
+      if (code) {
+        window.location.href = "com.geosb.farmMgt://oauth?code=" + encodeURIComponent(code);
+      }
+
+    })();
   </script>
 </body>
 </html>
