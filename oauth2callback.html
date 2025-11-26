@@ -1,37 +1,74 @@
-<script>
-(function() {
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get("code");
-  const localPort = params.get("local_port");
-  const error = params.get("error");
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OAuth Redirect</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin-top: 20%;
+    }
+  </style>
+</head>
+<body>
+  <h2>Redirecting back to app…</h2>
+  <p>If not redirected, you may close this tab.</p>
 
-  if (error) {
-    document.body.innerHTML = `<h2>❌ Authentication failed</h2><p>${error}</p>`;
-    return;
-  }
+  <script>
+  (function () {
+    const p = new URLSearchParams(window.location.search);
+    const code = p.get("code");
+    const port = p.get("local_port");
+    const error = p.get("error");
 
-  if (code && localPort) {
-    // POST code to the local loopback server created by your app
-    fetch(`http://127.0.0.1:${localPort}/oauth2callback`, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: "code=" + encodeURIComponent(code)
-    })
-    .finally(() => {
+    if (error) {
+      document.body.innerHTML = "<h2>❌ Authentication failed</h2><p>" + error + "</p>";
+      return;
+    }
+
+    // -------------------------------------------------------
+    // 1. Try POST → 127.0.0.1:<dynamic-port> (best + safest)
+    // -------------------------------------------------------
+    if (code && port) {
+      const url = `http://127.0.0.1:${port}/oauth2callback`;
+
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "code=" + encodeURIComponent(code)
+      })
+      .then(() => {
+        document.body.innerHTML = "<h3>Authentication complete. You may close this tab.</h3>";
+      })
+      .catch(() => {
+        console.log("POST failed, will deep link…");
+        fallbackDeepLink();
+      });
+
+      // Samsung-specific timeout fallback
+      setTimeout(() => {
+        fallbackDeepLink();
+      }, 1200);
+
+      return;
+    }
+
+    // ---------------------------------------------
+    // 2. Fallback deep link (Samsung Internet fix)
+    // ---------------------------------------------
+    function fallbackDeepLink() {
+      if (!code) return;
+      const uri = `farmmgt://oauth?code=${encodeURIComponent(code)}`;
+      window.location.href = uri;
       document.body.innerHTML =
-        "<h2>Authentication complete</h2><p>You may close this tab</p>";
-    });
+        "<h3>Authentication complete</h3><p>If you are not redirected, close this tab.</p>";
+    }
 
-    return;
-  }
+    // No port → must deep link
+    if (code) fallbackDeepLink();
 
-  // Fallback in case POST blocked (e.g., Samsung)
-  if (code) {
-    // Deep link back to app
-    const scheme = "com.geosb.farmMgt://oauth";
-    window.location.href = `${scheme}?code=${encodeURIComponent(code)}`;
-    document.body.innerHTML =
-      "<h2>Authentication complete</h2><p>If not redirected, close this tab</p>";
-  }
-})();
-</script>
+  })();
+  </script>
+</body>
+</html>
