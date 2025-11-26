@@ -22,31 +22,50 @@
     const port = p.get("local_port");
     const error = p.get("error");
 
+    // -----------------------------------------
+    // ERROR
+    // -----------------------------------------
     if (error) {
-      document.body.innerHTML = "<h2>❌ Authentication failed</h2><p>" + error + "</p>";
+      document.body.innerHTML =
+        "<h2>❌ Authentication failed</h2><p>" + error + "</p>";
       return;
     }
 
-    // -------------------------------------------------------
-    // 1. Try POST → 127.0.0.1:<dynamic-port> (best + safest)
-    // -------------------------------------------------------
+    // -----------------------------------------
+    // Samsung-safe fallback deep link
+    // MUST MATCH AndroidManifest EXACTLY
+    // -----------------------------------------
+    function fallbackDeepLink() {
+      if (!code) return;
+      const uri = `com.geosb.farmMgt://oauth?code=${encodeURIComponent(code)}`;
+      window.location.href = uri;
+
+      document.body.innerHTML =
+        "<h3>Authentication complete</h3><p>If you are not redirected, close this tab.</p>";
+    }
+
+    // -----------------------------------------
+    // MAIN FLOW: POST → 127.0.0.1:<port>
+    // -----------------------------------------
     if (code && port) {
       const url = `http://127.0.0.1:${port}/oauth2callback`;
 
+      // POST code to the local Kivy server
       fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: "code=" + encodeURIComponent(code)
       })
       .then(() => {
-        document.body.innerHTML = "<h3>Authentication complete. You may close this tab.</h3>";
+        document.body.innerHTML =
+          "<h3>Authentication complete. You may close this tab.</h3>";
       })
       .catch(() => {
-        console.log("POST failed, will deep link…");
+        console.log("POST failed → Using deep link fallback");
         fallbackDeepLink();
       });
 
-      // Samsung-specific timeout fallback
+      // Samsung aggressive timeout fallback (POST often blocked)
       setTimeout(() => {
         fallbackDeepLink();
       }, 1200);
@@ -54,19 +73,12 @@
       return;
     }
 
-    // ---------------------------------------------
-    // 2. Fallback deep link (Samsung Internet fix)
-    // ---------------------------------------------
-    function fallbackDeepLink() {
-      if (!code) return;
-      const uri = `farmmgt://oauth?code=${encodeURIComponent(code)}`;
-      window.location.href = uri;
-      document.body.innerHTML =
-        "<h3>Authentication complete</h3><p>If you are not redirected, close this tab.</p>";
+    // -----------------------------------------
+    // No port → Hosted redirect only → deep link
+    // -----------------------------------------
+    if (code) {
+      fallbackDeepLink();
     }
-
-    // No port → must deep link
-    if (code) fallbackDeepLink();
 
   })();
   </script>
