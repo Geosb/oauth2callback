@@ -19,7 +19,12 @@
   (function () {
     const p = new URLSearchParams(window.location.search);
     const code = p.get("code");
-    const port = p.get("local_port");
+
+    //const port = p.get("local_port");
+    // NEW: port forwarded using URL hash (survives Google redirect)
+    const hash = new URLSearchParams(window.location.hash.substring(1));
+    const port = p.get("local_port") || hash.get("local_port");
+
     const error = p.get("error");
 
     // -----------------------------------------
